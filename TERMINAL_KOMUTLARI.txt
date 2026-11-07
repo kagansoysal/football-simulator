@@ -1,0 +1,379 @@
+================================================================================
+          FOOTBALL SIMULATOR - TERMINAL KOMUTLARI VE KULLANIM REHBERİ
+================================================================================
+Bu dosya, projede geliştirdiğimiz tüm veri çekme, simülasyon ve analiz komutlarını 
+adım adım ve açıklamalarıyla içerir. Komutları projenin ana dizininde çalıştırabilirsiniz.
+
+Ön Hazırlık (Sanal Ortam):
+Eğer sanal ortam aktif değilse terminalde aktif edebilirsiniz:
+  Windows PowerShell: .\.venv\Scripts\Activate.ps1
+  Windows CMD:        .\.venv\Scripts\activate.bat
+(Veya komutların başına .\.venv\Scripts\python yazarak doğrudan çalıştırabilirsiniz.)
+
+--------------------------------------------------------------------------------
+1. ELO RATING VERİSİ İŞLEMLERİ (AkilOyunu API)
+--------------------------------------------------------------------------------
+
+A) Mevcut Kayıtlı Elo Durumunu Görüntüleme:
+   Önbellekteki güncel kulüp Elo verilerini ve ilk 10 takımı hızlıca listeler.
+   Komut:
+     python src/data_loader/elo_fetcher.py
+
+B) Elo Verilerini API'den Yenileme / Güncelleme (Force Refresh):
+   AkilOyunu API'sine bağlanıp en güncel Elo puanlarını çeker ve CSV'yi günceller.
+   (Maçlar oynandıkça puanları güncellemek için 1 kez çalıştırmanız yeterlidir).
+   Komut:
+     python src/data_loader/elo_fetcher.py --refresh
+
+C) Tüm 36 Şampiyonlar Ligi Takımının Elo Eşleşme Kontrolü:
+   36 kulübün tamamının Elo puanlarının hatasız eşleşip eşleşmediğini test eder.
+   Komut:
+     python scripts/check_teams.py
+
+--------------------------------------------------------------------------------
+2. FİKSTÜR VE GERÇEK MAÇ SONUÇLARI İŞLEMLERİ
+--------------------------------------------------------------------------------
+
+A) Turnuva Fikstürünü ve Oynanmış Skorları Senkronize Etme:
+   AkilOyunu API'sinden 36 takımın 8 haftalık (144 maç) tam fikstürünü çeker.
+   Oynanmış maçların gerçek skorlarını doldurur, kalan maçları boş ayarlar.
+   Komut:
+     python src/data_loader/fixture_fetcher.py --competition CL
+
+   (İleride Avrupa Ligi için: python src/data_loader/fixture_fetcher.py --competition EL)
+
+B) Mevcut Gerçek Puan Durumunu Görme (Simülasyonsuz):
+   Şu ana kadar gerçek hayatta oynanmış maçlara (ilk 3 hafta) göre oluşan 
+   resmi 36 takımlı UEFA Şampiyonlar Ligi puan tablosunu listeler.
+   Komut:
+     python scripts/show_current_standings.py
+
+--------------------------------------------------------------------------------
+3. MAÇ TAHMİN VE OLASILIK MOTORU (TEKİL MAÇ ANALİZİ)
+--------------------------------------------------------------------------------
+
+A) Herhangi İki Takım Arasındaki Tüm Skor Olasılıklarını Görme:
+   İki takımın Elo puanlarına, ev sahibi avantajına ve Dixon-Coles modeline göre
+   1-X-2 ihtimallerini, xG (gol beklentilerini) ve 0-0'dan 7-7'ye tüm olası skor 
+   dağılımlarını kategorize ederek gösterir.
+
+   Komut Şablonu:
+     python scripts/show_match_odds.py "<Ev_Sahibi>" "<Deplasman>"
+
+   Örnekler:
+     python scripts/show_match_odds.py "Slovan Bratislava" "Real Betis"
+     python scripts/show_match_odds.py "Galatasaray" "Stuttgart"
+     python scripts/show_match_odds.py "Real Madrid" "Arsenal"
+     python scripts/show_match_odds.py "Fenerbahçe" "Liverpool"
+
+B) Maç Motoru Genel Hız ve Doğrulama Testi:
+   Farklı senaryolarda motorun ürettiği oranları ve 10.000 maçlık simülasyon hızını test eder.
+   Komut:
+     python scripts/test_match_engine.py
+
+--------------------------------------------------------------------------------
+4. İLK 3 HAFTA TEST SİMÜLASYONLARI (GEÇMİŞE DÖNÜK ANALİZLER)
+--------------------------------------------------------------------------------
+
+A) En Yüksek Olasılıklı Skorlar (Mode) İle Simülasyon:
+   Her maçın olasılık matrisindeki en muhtemel tek skorunu alarak deterministik tablo üretir.
+   Komut:
+     python scripts/simulate_first_3_weeks_most_likely.py
+
+B) 10.000 Monte Carlo Simülasyonu (Ortalama vs. Medyan Tabloları):
+   İlk 3 haftayı 10.000 farklı evrende simüle ederek beklenen ortalama puanları,
+   medyan puanları, çeyreklik aralıkları [25-75%] ve Top 8 / Play-off olasılıklarını listeler.
+   Komut:
+     python scripts/simulate_first_3_weeks_monte_carlo.py
+
+C) Dinamik Elo Değişim Demosu:
+   Maçlar oynandıkça takımların Elo'larının nasıl arttığını/azaldığını ve en çok
+   Elo kazanan/kaybeden takımları gösterir.
+   Komut:
+     python scripts/demo_dynamic_elo.py
+
+--------------------------------------------------------------------------------
+5. 10.000 MONTE CARLO SEZON SİMÜLASYONU VE İNCELEME (ANA SİSTEM)
+--------------------------------------------------------------------------------
+Kalan 90 maçı (4-8. haftalar) dinamik Elo değişimleriyle 10.000 kez simüle eder.
+Sonuçlar önbelleğe kaydedildiği için İLK ÇALIŞTIRMADAN SONRA 0 SANİYEDE AÇILIR!
+
+A) Belirli Bir Simülasyonun (Örn: #42) Nihai Puan Durumunu Görme:
+   Komut:
+     python scripts/run_monte_carlo_exploration.py --sim-id 42
+
+B) O Simülasyondaki Kalan TÜM 90 Maçın Skorlarını ve Elo Değerlerini Görme:
+   Komut:
+     python scripts/run_monte_carlo_exploration.py --sim-id 42 -a
+
+C) Sadece Belirli Bir Haftanın (Örn: 4. Hafta) Maç Skorlarını ve Elo'larını Görme:
+   Komut:
+     python scripts/run_monte_carlo_exploration.py --sim-id 42 -r 4
+     python scripts/run_monte_carlo_exploration.py --sim-id 42 -r 5
+
+D) Belirli Bir Takımın (Örn: Como, Galatasaray, Real Madrid) Maçlarını Görme:
+   (Boşluklu isimlerde tırnak kullanabilir veya doğrudan yazabilirsiniz).
+   Komut:
+     python scripts/run_monte_carlo_exploration.py --sim-id 42 -t Como
+     python scripts/run_monte_carlo_exploration.py --sim-id 42 -t "Paris SG"
+     python scripts/run_monte_carlo_exploration.py --sim-id 100 -t Galatasaray
+
+E) 10.000 Simülasyonu Sıfırdan Yeniden Oynatmak İsterseniz:
+   Önbelleği sıfırlar ve yepyeni 10.000 paralel sezon simülasyonu üretir.
+   Komut:
+     python scripts/run_monte_carlo_exploration.py --force-new --sim-id 1
+
+--------------------------------------------------------------------------------
+6. 10.000 SİMÜLASYON İSTATİSTİKSEL ANALİZLERİ VE RAPORLAMA (YENİ)
+--------------------------------------------------------------------------------
+10.000 simülasyonun sonuçlarını analiz eder, JSON olarak kaydeder ve terminalde sunar.
+(Varsayılan olarak en güncel analiz dosyasını yükler: data/analysis/simulation_analysis_cl_2026_27.json)
+İstenirse her komuta '-d <Tarih>' (YYYY-MM-DD) eklenerek geçmiş bir tarihin analizi 0 saniyede açılabilir.
+
+A) Takım Bazlı Genel Performans Tablosu (Ort/Med Puan, G-B-M, AG, YG, Averaj, Top 8/Playoff %):
+   Güncel: python scripts/show_simulation_analysis.py --summary
+   Tarihli: python scripts/show_simulation_analysis.py -d 2026-10-30 --summary
+
+B) İlk 8 ve İlk 24 Baraj Puanı / Averaj Analizleri:
+   (Beklenen puan, medyan, averaj, %90 ve %99 garanti barajlar, gerçekleşme dağılımı)
+   Güncel: python scripts/show_simulation_analysis.py --thresholds
+   Tarihli: python scripts/show_simulation_analysis.py -d 2026-10-30 --thresholds
+
+C) "Hangi Puanı Alırsan Kaçıncı Olursun?" Olasılık Matrisi:
+   (Hangi puan kaçıncı sıraya tekabül eder, ilk 8 / play-off / elenme yüzdesi)
+   Güncel: python scripts/show_simulation_analysis.py --points-matrix
+   Tarihli: python scripts/show_simulation_analysis.py -d 2026-10-30 --points-matrix
+
+D) Belirli Bir Takımın Sıralama Olasılık Dağılım Grafiği (P(rank=k)):
+   (Takımın 1. sıradan 36. sıraya kadar her sırayı alma ihtimali, en olası bitiş sırası)
+   Güncel:  python scripts/show_simulation_analysis.py -t Galatasaray
+   Tarihli: python scripts/show_simulation_analysis.py -d 2026-10-30 -t Galatasaray
+   (Örnek diğer takımlar: -t "Real Madrid", -t "Paris SG", -t Como)
+
+E) Tüm Analizleri Tek Seferde Çalıştırma:
+   Güncel:  python scripts/show_simulation_analysis.py --all
+   Tarihli: python scripts/show_simulation_analysis.py -d 2026-10-30 --all
+
+--------------------------------------------------------------------------------
+7. TARİH BAZLI GEÇMİŞ ARŞİVLEME VE SORGULAMA (YENİ)
+--------------------------------------------------------------------------------
+Simülasyonları, çıkarılan istatistiksel analizleri ve çekilen Elo rating verilerini
+tarih ve saat klasörleri (YYYY-MM-DD_HH-MM) altında kalıcı olarak arşivler. Böylece maçlar oynandıkça
+ve simülasyonları yeniledikçe geçmiş tahmin ve analizlerinizi dilediğiniz zaman inceleyebilirsiniz.
+
+Klasör Yapısı:
+  * Elo Verileri:    data/processed/<Tarih_Saat>/akiloyunu_club_elo.csv
+  * Simülasyonlar:   data/simulations/<Tarih_Saat>/mc_10000_results.pkl.gz
+  * Analiz Çıktıları: data/analysis/<Tarih_Saat>/simulation_analysis_cl_2026_27.json
+
+NOT: Analiz JSON dosyası diskte varsa simülasyonu baştan hesaplamaz, 0.1 SANİYEDE doğrudan açar!
+Arama yaparken ister tam zamanı ('2026-10-30_14-11'), ister sadece günü ('2026-10-30') yazabilirsiniz;
+sadece gün yazarsanız sistem o günün en son çalıştırılan arşivini otomatik bulur.
+
+A) Kayıtlı Simülasyon ve Analiz Tarihlerini Listeleme:
+   Komutlar:
+     python scripts/run_monte_carlo_exploration.py --list-dates
+     python scripts/show_simulation_analysis.py --list-dates
+
+B) Geçmiş Belli Bir Tarihe/Saate Ait Simülasyon Maçlarını / Puan Durumunu İnceleme:
+   Komutlar:
+     python scripts/run_monte_carlo_exploration.py -d 2026-10-30_14-12 --sim-id 1
+     python scripts/run_monte_carlo_exploration.py -d 2026-10-30 --sim-id 1 -t Galatasaray
+     python scripts/run_monte_carlo_exploration.py -d 2026-10-30 --sim-id 42 -a
+
+C) Geçmiş Belli Bir Tarihe/Saate Ait İstatistiksel Analizleri Görme:
+   Komutlar:
+     python scripts/show_simulation_analysis.py -d 2026-10-30_14-11 --summary
+     python scripts/show_simulation_analysis.py -d 2026-10-30 --thresholds
+     python scripts/show_simulation_analysis.py -d 2026-10-30 -t Galatasaray
+     python scripts/show_simulation_analysis.py -d 2026-10-30 --all
+
+D) Yeni Bir Tarihte Sıfırdan Simülasyon Çalıştırıp O Tarihe Arşivleme:
+   (Örneğin 4. hafta maçları bittiğinde):
+     python scripts/run_monte_carlo_exploration.py --force-new -d 2026-11-05
+     python scripts/show_simulation_analysis.py -d 2026-11-05
+
+--------------------------------------------------------------------------------
+8. HAFTALIK OTOMASYON VE TEK TIKLA ÇALIŞTIRMA (YENİ)
+--------------------------------------------------------------------------------
+Tüm zinciri (Fikstür çekme -> Elo çekme -> 10.000 Simülasyon -> Analiz JSON'ı -> Not Defteri Raporu)
+otomatikleştiren ve her Cuma kendiliğinden çalışan sistem.
+
+A) Tek Tıkla Manuel Çalıştırma (Masaüstü / Klasörden):
+   Proje ana klasöründeki 'weekly_update_champions_league.bat' dosyasına çift tıklamanız yeterlidir.
+   Tüm adımları ~60 saniyede tamamlar ve oluşturduğu 'reports/rapor_YYYY-MM-DD.txt'
+   raporunu otomatik olarak Not Defteri (Notepad) ile karşınıza getirir.
+
+B) Tek Tıkla Hızlı Simülasyon (API'siz - Doğrudan 3. Adımdan Başlar):
+   Fikstür ve Elo puanlarını internetten çekmeden, mevcut yerel verilerle
+   anında 10.000 simülasyon ve analiz raporu üretir.
+   Kısayol: Proje dizinindeki 'fast_simulation_champions_league.bat' dosyasına çift tıklayın.
+   Terminal Komutu: python scripts/run_weekly_pipeline.py --skip-fetch --notepad
+
+C) Terminalden Manuel Tam Çalıştırma:
+   Komut:
+     python scripts/run_weekly_pipeline.py --notepad
+
+D) Windows Görev Zamanlayıcı (Her Cuma Saat 10:00):
+   * Görev Adı: FutbolSimulator_TumTurnuvalar_HaftalikRapor
+   * Durumu   : Aktif (Ready)
+   * Zamanı   : Her Cuma saat 10:00 (Siz unutsanız bile arka planda otomatik çalışır).
+   * Kaydı yenilemek veya yeniden kurmak isterseniz:
+     powershell -ExecutionPolicy Bypass -File scripts/register_task.ps1
+
+E) Oluşturulan Haftalık Raporlar ve Loglar:
+   * Not Defteri Raporları : reports/rapor_YYYY-MM-DD_HH-MM.txt
+   * Ayrıntılı Süreç Logları: logs/pipeline_YYYY-MM-DD_HH-MM.log (En son log: logs/latest_pipeline.log)
+
+--------------------------------------------------------------------------------
+9. UEFA AVRUPA LİGİ (UEL) KOMUTLARI VE KISAYOLLARI (YENİ)
+--------------------------------------------------------------------------------
+Sistem tamamen generic mimaride olduğundan Şampiyonlar Ligi'nin yanı sıra
+UEFA Avrupa Ligi (36 takımlı yeni lig formatı) için de aynı simülasyon ve
+analiz yeteneklerine sahiptir.
+
+A) Tek Tıkla Avrupa Ligi Çalıştırma (.bat):
+   * Tam Güncelleme (API + Elo + 10.000 Sim): 'weekly_update_europa_league.bat'
+   * Hızlı Simülasyon (API atlayıp doğrudan sim): 'fast_simulation_europa_league.bat'
+
+B) Terminalden Avrupa Ligi Simülasyonu ve Raporu:
+   * Tam pipeline:
+       python scripts/run_weekly_pipeline.py -c UEL --notepad
+   * API atlayarak yerel veriyle:
+       python scripts/run_weekly_pipeline.py -c UEL --skip-fetch --notepad
+
+C) Avrupa Ligi İstatistiksel Analizleri:
+   * Genel Puan Tablosu:
+       python scripts/show_simulation_analysis.py -c UEL --summary
+   * İlk 8 ve Play-off Barajları:
+       python scripts/show_simulation_analysis.py -c UEL --thresholds
+   * Puan-Olasılık Matrisi:
+       python scripts/show_simulation_analysis.py -c UEL --points-matrix
+   * Takım Analizi (Örn: Beşiktaş):
+       python scripts/show_simulation_analysis.py -c UEL -t Besiktas
+       python scripts/show_simulation_analysis.py -c UEL -t Lyon
+       python scripts/show_simulation_analysis.py -c UEL -t Benfica
+
+
+--------------------------------------------------------------------------------
+10. UEFA KONFERANS LİGİ (ECL) KOMUTLARI VE KISAYOLLARI (YENİ)
+--------------------------------------------------------------------------------
+UEFA Konferans Ligi (36 takımlı, 6 maçlık yeni lig formatı) için de tam
+simülasyon, baraj analizleri ve tek tıkla çalıştırma özellikleri eklenmiştir.
+
+A) Tek Tıkla Konferans Ligi Çalıştırma (.bat):
+   * Tam Güncelleme (API + Elo + 10.000 Sim): 'weekly_update_conference_league.bat'
+   * Hızlı Simülasyon (API atlayıp doğrudan sim): 'fast_simulation_conference_league.bat'
+
+B) Terminalden Konferans Ligi Simülasyonu ve Raporu:
+   * Tam pipeline:
+       python scripts/run_weekly_pipeline.py -c ECL --notepad
+   * API atlayarak yerel veriyle:
+       python scripts/run_weekly_pipeline.py -c ECL --skip-fetch --notepad
+
+C) Konferans Ligi İstatistiksel Analizleri:
+   * Genel Puan Tablosu:
+       python scripts/show_simulation_analysis.py -c ECL --summary
+   * İlk 8 ve Play-off Barajları:
+       python scripts/show_simulation_analysis.py -c ECL --thresholds
+   * Puan-Olasılık Matrisi:
+       python scripts/show_simulation_analysis.py -c ECL --points-matrix
+   * Takım Analizi (Örn: Trabzonspor):
+       python scripts/show_simulation_analysis.py -c ECL -t Trabzonspor
+       python scripts/show_simulation_analysis.py -c ECL -t Atalanta
+       python scripts/show_simulation_analysis.py -c ECL -t Brighton
+       python scripts/show_simulation_analysis.py -c ECL -t Ajax
+
+--------------------------------------------------------------------------------
+11. REST API VE POSTGRESQL VERİTABANI İŞLEMLERİ (YENİ - AŞAMA 1)
+--------------------------------------------------------------------------------
+Projenin tüm verileri (Turnuvalar, Takımlar, Fikstürler, Oynanmış Skorlar ve 
+10.000 Monte Carlo analiz sonuçları) artık Docker üzerindeki PostgreSQL veritabanında
+ilişkisel olarak tutulmaktadır ve FastAPI üzerinden sunulmaktadır.
+
+A) Docker PostgreSQL Konteynerini Başlatma / Durdurma:
+   * Başlat: docker compose up -d
+   * Durdur:  docker compose down
+   * Durum:   docker ps
+
+B) Verileri PostgreSQL'e Senkronize Etme / Aktarma:
+   Yerel JSON ve CSV dosyalarındaki verileri PostgreSQL veritabanına aktarır:
+   Komut:
+     python scripts/sync_to_db.py
+
+C) FastAPI REST API Sunucusunu Başlatma:
+   Tek tıkla başlatmak için:
+     run_api_server.bat
+   Terminalden başlatmak için:
+     uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+D) Swagger UI & API Dokümantasyonu:
+   Tarayıcınızda açıp tüm endpoint'leri canlı deneyebilirsiniz:
+   * Swagger UI : http://localhost:8000/docs
+   * ReDoc      : http://localhost:8000/redoc
+
+E) API Otomatik Test Paketini Çalıştırma (Integration Tests):
+   Komut:
+     python scripts/test_api.py
+
+--------------------------------------------------------------------------------
+12. CELERY WORKER, REDIS VE FULL DOCKER STACK (YENİ - AŞAMA 2 & 3)
+--------------------------------------------------------------------------------
+Ağır Monte Carlo simülasyonları (10.000 sezon / 900.000 maç) artık ana API sunucusunu 
+kilitlemeden arka planda asenkron Celery Worker havuzunda çalıştırılmaktadır.
+Redis mesaj kuyruğu (Message Broker) olarak görev yapar.
+
+A) Tüm Mimariyi (DB + Redis + API + Worker) Docker ile Ayağa Kaldırma:
+   Tek bir komutla 4 konteyneri de production ortamında çalıştırır:
+     docker compose up -d
+
+   Durdurmak için:
+     docker compose down
+
+B) Konteyner Durumlarını İnceleme:
+     docker ps
+     (football_simulator_db, football_simulator_redis, football_simulator_api, football_simulator_worker)
+
+C) Canlı Logları İzleme:
+   * API logları:    docker logs -f football_simulator_api
+   * Worker logları: docker logs -f football_simulator_worker
+
+D) Asenkron Simülasyon Tetikleme & İlerleme Takibi (Swagger UI):
+   1. http://localhost:8000/docs adresini açın.
+   2. 'POST /api/v1/simulations/run' endpoint'ini çalıştırın.
+      (Dönen 'task_id'yi kopyalayın. API 0.05 saniyede yanıt verir, donma yaşanmaz.)
+   3. 'GET /api/v1/simulations/status/{task_id}' endpoint'ine bu ID'yi girin.
+      (Simülasyonun adımını, % ilerlemesini ve tamamlandığında baraj sonuçlarını canlı görün!)
+
+E) Yerel Geliştirme İçin Worker Başlatma (Docker'sız çalıştırmak isterseniz):
+     run_worker.bat
+
+
+--------------------------------------------------------------------------------
+11. GELECEK HAFTANIN MAÇLARI VE EN OLASI SKORLARI (1. KATEGORİ) (YENİ)
+--------------------------------------------------------------------------------
+Tüm turnuvalarda (Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi) sıradaki
+haftanın tüm maçlarını tarar, 1-X-2 ihtimallerini, beklenen golleri (xG)
+ve gerçekleşme ihtimali en yüksek 1. Kategori (>= %5.0) skorları döker.
+
+A) 3 Turnuvanın Tamamını Listeleme (CL, UEL, ECL):
+   Komut:
+     .venv\Scripts\python scripts/show_upcoming_odds.py
+
+B) Tek Bir Turnuvayı Listeleme:
+   * Şampiyonlar Ligi : .venv\Scripts\python scripts/show_upcoming_odds.py -c CL
+   * Avrupa Ligi      : .venv\Scripts\python scripts/show_upcoming_odds.py -c UEL
+   * Konferans Ligi   : .venv\Scripts\python scripts/show_upcoming_odds.py -c ECL
+
+C) İki Turnuvayı Birlikte Listeleme:
+   Komut:
+     .venv\Scripts\python scripts/show_upcoming_odds.py -c UEL ECL
+
+D) Belirli Bir Haftayı Görüntüleme (Örn: 5. Hafta):
+   Komut:
+     .venv\Scripts\python scripts/show_upcoming_odds.py -c CL -r 5
+
+===============================================================================
+Rehber Sonu.
+
+

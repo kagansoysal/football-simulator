@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+Include/
+Lib/
+.venv/Scripts/
+pyvenv.cfg
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Database
+*.sqlite3
+*.db
+postgres-data/
+
+# Heavy Simulation Result Files (Pickle dumps are 10MB-20MB each and re-generable)
+data/simulations/
+simulations/
+
+# Logs & Temporary Reports
+logs/
+*.log
+reports/
+*.txt.bak
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
