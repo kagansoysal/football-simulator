@@ -60,3 +60,10 @@ reports/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+

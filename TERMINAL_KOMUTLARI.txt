@@ -373,6 +373,44 @@ D) Belirli Bir Haftayı Görüntüleme (Örn: 5. Hafta):
    Komut:
      .venv\Scripts\python scripts/show_upcoming_odds.py -c CL -r 5
 
+--------------------------------------------------------------------------------
+12. TEST OTOMASYONU, KOD KALİTESİ (LINTING) VE CI/CD (YENİ - AŞAMA 4)
+--------------------------------------------------------------------------------
+Projenin enterprise seviyede test kapsamı (Unit/Integration Test), kod kalitesi 
+ve GitHub Actions CI hattı hazırlandı.
+
+A) Tüm Testleri Çalıştırma:
+   Komut:
+     .venv\Scripts\pytest
+
+B) Kod Kapsamı (Test Coverage) Raporu ile Birlikte Çalıştırma:
+   Komut:
+     .venv\Scripts\pytest --cov=src --cov-report=term-missing
+
+C) Tekil Test Dosyalarını Çalıştırma:
+   * Maç Motoru & Dixon-Coles testleri:
+     .venv\Scripts\pytest tests/test_match_engine.py
+   * FastAPI REST API endpoint testleri:
+     .venv\Scripts\pytest tests/test_api.py
+   * Celery Asenkron Simülasyon görevi testleri:
+     .venv\Scripts\pytest tests/test_celery_tasks.py
+
+D) Kod Kalitesi ve Linter Kontrolü (Ruff):
+   Hızlı ve modern linter aracı ile kod analizi:
+   * Kontrol et:
+     .venv\Scripts\ruff check tests/
+   * Otomatik düzelt:
+     .venv\Scripts\ruff check --fix tests/
+
+E) GitHub Actions CI/CD Pipeline:
+   Her 'git push' veya 'Pull Request' yapıldığında GitHub Actions:
+   1. Ubuntu ortamında Python 3.11 kurar ve bağımlılıkları yükler.
+   2. Service container olarak gerçek PostgreSQL 16 ve Redis 7 ayağa kaldırır.
+   3. Ruff linter kontrollerini çalıştırır.
+   4. Tüm pytest test paketini coverage analiziyle birlikte koşturur.
+   5. Dockerfile derlemesini (build) test ederek imajın hatasız oluştuğunu doğrular.
+   Dosya: .github/workflows/ci.yml
+
 ===============================================================================
 Rehber Sonu.
 
